@@ -1,0 +1,365 @@
+Скрипт SceneChange
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEditor.SceneManagement;
+public class SceneChange : MonoBehaviour
+{
+    // Start is called before the first frame update
+    public string sceneName;
+
+    private void OnTriggerEnter(Collider other)
+    {
+        EditorSceneManager.LoadScene(sceneName);
+    }
+
+}
+
+Скрипт Teleport
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Teleport : MonoBehaviour
+{
+    public Transform teleportPoint;
+
+    private void OnTriggerEnter(Collider other)
+    {
+        other.transform.position = teleportPoint.position;
+    }
+}
+
+Скрипт Enemy
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Enemy : MonoBehaviour
+{
+    //Скорость движения врага
+    public float speed;
+
+    //Цель, к которой движется враг
+    public Transform target;
+
+    //Очки урона от атаки врагом игрока
+    public int playerDamage = 2;
+
+
+    void Update()
+    {
+        //Меняет каждый кадр позицию NPC на новую
+        transform.position = Vector3.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+
+        //Разворачивает каждый кадр NPC лицом к цели
+        transform.LookAt(target.position);
+    }
+
+    //При столкновении врага с игроком второму наносится урон
+    private void OnTriggerEnter(Collider other)
+    {
+        Player player = other.GetComponent<Player>();
+        player.TakeDamage(playerDamage);
+    }
+}
+
+Скрипт Missile
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Missile : MonoBehaviour
+{
+    public float speed;
+
+    void Start()
+    {
+        Destroy(gameObject, 3);
+    }
+
+    void Update()
+    {
+        transform.position += transform.forward * speed * Time.deltaTime;
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        Destroy(other.gameObject);
+        Destroy(gameObject);
+    }
+}
+
+Скрипт Player
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class Player : MonoBehaviour
+{
+    public int health = 10;
+    public int maxHealth = 10;
+    public GameObject fireballPrefab;
+    public Transform attackPoint;
+    public int coins;
+    public AudioSource audioSource;
+    public AudioClip damageSound;
+
+    //Метод, понижающий здоровье игрока
+    public void TakeDamage(int damage)
+    {
+        health -= damage;
+
+        if (health > 0)
+        {
+            audioSource.PlayOneShot(damageSound);
+        }
+        else
+        {
+            int sceneIndex = SceneManager.GetActiveScene().buildIndex;
+            SceneManager.LoadScene(sceneIndex);
+        }
+    }
+
+    void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            Instantiate(fireballPrefab, attackPoint.position, attackPoint.rotation);
+        }
+    }
+    public void CollectCoins()
+    {
+        coins++;
+        print("Собранные монетки: " + coins);
+    }
+}
+
+Скрипт Coin
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Coin : MonoBehaviour
+{
+    void OnTriggerEnter(Collider other)
+    {
+
+        Player player = other.GetComponent<Player>();
+
+        //Количество монеток обновляется
+        player.CollectCoins();
+
+        //Монетка, которую собрали, уничтожается
+        Destroy(gameObject);
+    }
+
+}
+
+Скрипт Platform
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Platform : MonoBehaviour
+{
+    //Скорость движения платформы
+    public float speed;
+    //Направление движения платформы
+    public Vector3 direction;
+    //Состояние платформы: активна / не активна
+    public bool isActive;
+
+
+    //Обновление движения платформы каждый кадр
+    void Update()
+    {
+
+        if (isActive)
+        {
+
+            transform.position += direction * speed * Time.deltaTime;
+        }
+    }
+
+
+    //Столкновение платформы с двумя типами объектов
+    void OnTriggerEnter(Collider other)
+    {
+        /*Если платформа достигает точки остановки, то она меняет направление
+        своего движения*/
+        if (other.tag == "PlatformStop")
+        {
+            direction *= -1;
+        }
+        //Если платформы коснулся игрок, то она активируется
+        if (other.tag == "Player")
+        {
+            isActive = true;
+        }
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        //Если с платформы ушёл игрок, то она дезактивируется
+        if (other.tag == "Player")
+        {
+            isActive = false;
+        }
+    }
+
+}
+
+Скрипт Timer
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using TMPro;
+
+public class Timer : MonoBehaviour
+{
+    public int minutes;
+    public float seconds;
+    public TextMeshProUGUI timerText;
+
+    // Цикл обновления составляет примерно 0.01 секунды
+    void Update()
+    {
+        seconds -= Time.deltaTime;
+
+        if (seconds <= 0)
+        {
+            if (minutes > 0)
+            {
+                seconds += 59;
+
+                minutes--;
+            }
+            else
+            {
+                // Если таймер остановился, перезагружаем текущую сцену
+                int sceneIndex = SceneManager.GetActiveScene().buildIndex;
+                SceneManager.LoadScene(sceneIndex);
+            }
+        }
+
+        //Округляем значение секунд до целых для их вывода на экран
+        int roundSeconds = Mathf.RoundToInt(seconds);
+        timerText.text = minutes + ":" + roundSeconds;
+    }
+}
+
+Скрипт Temperature
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+public class Temperature : MonoBehaviour
+{
+	public Player health;
+	public int playerDamage = 2;
+	public float temperatureCurrent = 36.6f;
+	public float temperatureNormal = 36.6f;
+	public float temperatureCritical = 34f;
+	public float freezeSpeed = 0.05f;
+	public float freezeDamageTimer = 1;
+	public float freezeDamageDelay = 2;
+
+	void Update()
+	{
+		temperatureCurrent -= freezeSpeed * Time.deltaTime;
+
+		if (temperatureCurrent <= temperatureCritical)
+		{
+			if (freezeDamageTimer <= 0)
+			{
+				health.TakeDamage(playerDamage);
+				freezeDamageTimer += freezeDamageDelay;
+			}
+			else
+			{
+				freezeDamageTimer -= Time.deltaTime;
+			}
+		}
+	}
+}
+
+Скрипт Bonfire
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Bonfire : MonoBehaviour
+{
+	public float lifeTime = 15;
+	public float heatPower = 0.1f;
+
+	void Update()
+	{
+		lifeTime -= Time.deltaTime;
+		if (lifeTime <= 0)
+		{
+			gameObject.SetActive(false);
+		}
+	}
+
+	void OnTriggerStay(Collider other)
+	{
+		if (other.GetComponent<Temperature>() != null)
+		{
+			Temperature temperature = other.GetComponent<Temperature>();
+
+			if (temperature.temperatureCurrent < temperature.temperatureNormal)
+			{
+				temperature.temperatureCurrent += heatPower * Time.deltaTime;
+			}
+		}
+	}
+}
+
+Скрипт PlayerUI
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class PlayerUI : MonoBehaviour
+{
+	public Player player;
+	public TextMeshProUGUI coinsCounterText;
+	public Slider healthSlider;
+
+	void Update()
+	{
+		// Обновляем текст с кол-вом монеток
+		coinsCounterText.text = player.coins.ToString();
+
+		// Обновляем значение здоровья игрока
+		healthSlider.maxValue = player.maxHealth;
+		healthSlider.value = player.health;
+	}
+
+}
+
+Скрипт TemperatureUI
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class TemperatureUI : MonoBehaviour
+{
+	public Temperature temperature;
+	public TextMeshProUGUI temperatureText;
+
+	void Update()
+	{
+		float roundTemperature = Mathf.Round(temperature.temperatureCurrent * 10.0f) * 0.1f;
+		temperatureText.text = roundTemperature.ToString();
+	}
+}
+
+
